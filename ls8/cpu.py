@@ -6,6 +6,7 @@ import sys
 HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
+MUL = 0b10100010
 
 
 class CPU:
@@ -17,26 +18,31 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
 
-    def load(self):
+    def load(self, file_name):
         """Load a program into memory."""
 
-        address = 0
+        try:
+            address = 0
+            # open the file
+            with open(file_name) as f:
+                for line in f:
+                    # strip out white space, and split at a inline comment
+                    cleaned_line = line.strip().split("#")
+                    # grab the number
+                    value = cleaned_line[0].strip()
 
-        # For now, we've just hardcoded a program:
+                    # check if value is blank or not, if it is skip onto the next line
+                    if value != "":
+                        # convert from binary to num
+                        num = int(value, 2)
+                        self.ram[address] = num
+                        address += 1
+                    else:
+                        continue
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        except FileNotFoundError:
+            print("ERR: FILE NOT FOUND")
+            sys.exit(2)
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -44,6 +50,12 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         # elif op == "SUB": etc
+        elif op == "SUB":
+            self.reg[reg_a] -= self.reg[reg_b]
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "DIV":
+            self.reg[reg_a] /= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -76,14 +88,21 @@ class CPU:
     def run(self):
         """Run the CPU."""
         while True:
-            if self.ram_read(self.pc) == PRN:
-                index = self.ram[self.pc+1]
+            op = self.ram_read(self.pc)
+            if op == PRN:
+                index = self.ram[self.pc + 1]
                 print(self.reg[index])
                 self.pc += 2
-            if self.ram_read(self.pc) == LDI:
-                index = self.ram[self.pc+1]
-                value = self.ram[self.pc+2]
+            if op == LDI:
+                index = self.ram[self.pc + 1]
+                value = self.ram[self.pc + 2]
                 self.reg[index] = value
                 self.pc += 3
-            if self.ram_read(self.pc) == HLT:
+            if op == HLT:
                 return False
+            if op == MUL:
+                reg_a = self.ram_read(self.pc + 1)
+                reg_b = self.ram_read(self.pc + 2)
+                # call ALU
+                self.alu("MUL", reg_a, reg_b)
+                self.pc += 3
