@@ -7,6 +7,12 @@ HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
 MUL = 0b10100010
+POP = 0b01000110
+PUSH = 0b01000101
+CALL = 0b01010000
+RET = 0b00010001
+
+SP = 7
 
 
 class CPU:
@@ -93,16 +99,57 @@ class CPU:
                 index = self.ram[self.pc + 1]
                 print(self.reg[index])
                 self.pc += 2
-            if op == LDI:
+            elif op == LDI:
                 index = self.ram[self.pc + 1]
                 value = self.ram[self.pc + 2]
                 self.reg[index] = value
                 self.pc += 3
-            if op == HLT:
+            elif op == HLT:
                 return False
-            if op == MUL:
+            elif op == MUL:
                 reg_a = self.ram_read(self.pc + 1)
                 reg_b = self.ram_read(self.pc + 2)
                 # call ALU
                 self.alu("MUL", reg_a, reg_b)
                 self.pc += 3
+            elif op == PUSH:
+                # decrement SP
+                self.reg[SP] -= 1
+                # get current mem address SP points to
+                stack_addr = self.reg[SP]
+                # grab a reg number from the instruction
+                reg_num = self.ram_read(self.pc + 1)
+                # get the value out of the register
+                val = self.reg[reg_num]
+                # write the reg value to a postition in the stack
+                self.ram_write(stack_addr, val)
+                self.pc += 2
+            elif op == POP:
+                # get the value out of memory
+                stack_val = self.ram_read(self.reg[SP])
+                # get the register number from the instruction in memory
+                reg_num = self.ram_read(self.pc + 1)
+                # set the value of a register to the value held in the stack
+                self.reg[reg_num] = stack_val
+                # increment the SP
+                self.reg[SP] += 1
+                self.pc += 2
+            elif op == CALL:
+                # decrement the SP
+                self.reg[SP] -= 1
+                # get the current mem addr that SP points to
+                stack_addr = self.reg[SP]
+                # get the return mem addr
+                return_addr = self.pc + 2
+                # push the return addr onto the stack
+                self.ram_write(stack_addr, return_addr)
+                # set PC to the value in the register
+                reg_num = self.ram_read(pc + 1)
+                self.pc = self.reg[reg_num]
+            elif op == RET:
+                # pop the return mem addr off the stack
+                # store the poped mem addr in the PC
+                self.pc = self.ram_read(self.reg[SP])
+                self.reg[SP] += 1
+            else:
+                print("ERR: UNKNOWN COMMAND:\t", op)
