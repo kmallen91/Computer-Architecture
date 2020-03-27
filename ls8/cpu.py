@@ -137,18 +137,18 @@ class CPU:
             elif op == CALL:
                 # decrement the SP
                 self.reg[SP] -= 1
-                # get the current mem addr that SP points to
+                # get the current memory address that SP points to
                 stack_addr = self.reg[SP]
-                # get the return mem addr
+                # get the return memory address
                 return_addr = self.pc + 2
-                # push the return addr onto the stack
+                # push the return address onto the stack
                 self.ram_write(stack_addr, return_addr)
                 # set PC to the value in the register
-                reg_num = self.ram_read(pc + 1)
+                reg_num = self.ram_read(self.pc + 1)
                 self.pc = self.reg[reg_num]
             elif op == RET:
-                # pop the return mem addr off the stack
-                # store the poped mem addr in the PC
+                # pop the return memory address off the stack
+                # store the poped memory address in the PC
                 self.pc = self.ram_read(self.reg[SP])
                 self.reg[SP] += 1
             else:
